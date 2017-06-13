@@ -185,7 +185,7 @@ my_mds <- create_layout(viz_ig,
 
 Let's make some plots!
 
-```{r superjournals, dev = 'pdf', fig.width = 10, fig.height = 10}
+```{r superjournals, dev = 'pdf', fig.width = 10, fig.height = 10, fig.show = 'hide'}
 extrafont::loadfonts(device = 'pdf', quiet = TRUE)
 
 ggraph(my_mds) +
@@ -206,13 +206,18 @@ I have gone through and manually assigned plausible labels to the communities ge
 
 We can then have a labelled plot for reference, or even show a selection of "interesting" labels on the main graph, while omitting most of them to avoid clutter.
 
-```{r labelled, dev = 'png', fig.width = 10, fig.height = 10, dev.args = list(type = 'cairo')}
+```{r labelled, dev = 'png', fig.width = 10, fig.height = 10, dev.args = list(type = 'cairo'), dpi = 600}
 extrafont::loadfonts(device = 'win', quiet = TRUE)
 
 ggraph(my_mds) +
   geom_edge_fan0(alpha = .01, colour = 'steelblue3') +
   geom_node_point(aes(size = PageRank), fill = 'steelblue3', pch = 21, colour = 'white') +
-  geom_node_label(aes(label = field), repel = TRUE, size = 1, family = 'Arial Narrow') +
+  geom_node_text(aes(label = field), size = 3,
+                 repel = TRUE,
+                 family = 'Arial Narrow',
+                 fontface = 'bold',
+                 colour = 'steelblue',
+                 segment.alpha = .2) +
   coord_fixed() +
   scale_x_reverse() +
   theme_graph() +
