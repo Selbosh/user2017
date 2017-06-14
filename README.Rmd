@@ -258,3 +258,15 @@ ggraph(stats_layout) +
   theme_graph() +
   theme(legend.position = 'none')
 ```
+
+And here is a ranking of these statistical journals, by Bradley--Terry score.
+
+```{r stats_rank, message = FALSE}
+dplyr::arrange(
+  data.frame(journal = V(stats_ig)$name,
+             Scroogefactor = scrooge::Scroogefactor(stats_xtab),
+             PageRank = V(stats_ig)$PageRank,
+             BradleyTerry = scrooge::BTscores(stats_xtab)),
+  desc(BradleyTerry)
+)
+```
