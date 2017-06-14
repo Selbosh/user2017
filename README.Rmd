@@ -15,11 +15,11 @@ options(scipen = 999) # disable scientific notation
 
 A poster for the useR!2017 conference in Brussels. 
 
-## Title
+### Title
 
 Ranking influential communities in networks
 
-## Abstract
+### Abstract
 
 Which scientific fields export the most intellectual influence, through recent research, to other fields?
 Citation behaviour varies greatly across disciplines, making inter-field comparisons difficult.
@@ -270,3 +270,23 @@ dplyr::arrange(
   desc(BradleyTerry)
 )
 ```
+
+And now for something completely different.
+What if we actually have a single non-statistics "super-journal" in the statistics network?
+
+```{r stats_others}
+mapping <- match(V(ig)$name, V(stats_ig)$name)
+mapping[is.na(mapping)] <- max(mapping, na.rm = TRUE) + 1
+stats_others <- contract.vertices(ig, mapping, list(name = 'first', 'ignore'))
+V(stats_others)$name[vcount(stats_others)] <- "(All others)"
+others_xtab <- Matrix::t(as_adjacency_matrix(stats_others))
+
+dplyr::arrange(
+  data.frame(journal = V(stats_others)$name,
+             Scroogefactor = scrooge::Scroogefactor(others_xtab),
+             PageRank = page.rank(stats_others)$vector,
+             BradleyTerry = scrooge::BTscores(others_xtab)),
+  desc(BradleyTerry)
+)
+```
+
