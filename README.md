@@ -149,8 +149,6 @@ my_mds <- create_layout(viz_ig,
 Let's make some plots!
 
 ``` r
-extrafont::loadfonts(device = 'pdf', quiet = TRUE)
-
 ggraph(my_mds) +
   geom_edge_fan0(alpha = .01, colour = 'steelblue3') +
   geom_node_point(aes(size = PageRank), fill = 'steelblue3', pch = 21, colour = 'white') +
@@ -164,14 +162,12 @@ On its own, our visualisation does not imply much because we don't know which co
 
 ``` r
 labels <- read.csv('data/cluster_names.csv', stringsAsFactors = FALSE)
-V(viz_ig)$field <- labels$field[match(V(viz_ig)$name, labels$community)]
+V(viz_ig)$field <- V(sj)$field <- labels$field[match(V(viz_ig)$name, labels$community)]
 ```
 
 We can then have a labelled plot for reference, or even show a selection of "interesting" labels on the main graph, while omitting most of them to avoid clutter.
 
 ``` r
-extrafont::loadfonts(device = 'win', quiet = TRUE)
-
 ggraph(my_mds) +
   geom_edge_fan0(alpha = .01, colour = 'steelblue3') +
   geom_node_point(aes(size = PageRank), fill = 'steelblue3', pch = 21, colour = 'white') +
@@ -211,7 +207,6 @@ stats_layout <- create_layout(stats_ig,
                               algorithm = 'mds',
                               dist = 1 - cor(as.matrix(stats_xtab)))
 
-extrafont::loadfonts(device = 'win', quiet = TRUE)
 ggraph(stats_layout) +
   geom_edge_fan0(alpha = .05, colour = 'tomato2') +
   geom_node_point(aes(size = PageRank), fill = 'tomato2', pch = 21, colour = 'white') +
@@ -431,15 +426,14 @@ other_layout <- create_layout(stats_others,
                               algorithm = 'mds',
                               dist = 1 - cor(as.matrix(others_xtab)))
 
-extrafont::loadfonts(device = 'win', quiet = TRUE)
 ggraph(other_layout) +
-  geom_edge_fan0(alpha = .01, colour = 'tomato2') +
-  geom_node_point(aes(size = PageRank), fill = 'tomato2', pch = 21, colour = 'white') +
+  geom_edge_fan0(alpha = .01, colour = 'steelblue3') +
+  geom_node_point(aes(size = PageRank), fill = 'steelblue3', pch = 21, colour = 'white') +
   geom_node_text(aes(label = name), size = 3,
                  repel = TRUE,
                  family = 'Arial Narrow',
                  fontface = 'bold',
-                 colour = 'tomato2',
+                 colour = 'steelblue3',
                  segment.alpha = .2) +
   coord_fixed() +
   theme_graph() +
@@ -447,3 +441,64 @@ ggraph(other_layout) +
 ```
 
 ![](img/plot_stats_others-1.png)
+
+Ranking
+-------
+
+We can penalise the Bradley--Terry model by adding a "player zero" who cites/is cited by every player/journal/field at a constant rate (say 1/2). This will help reduce the chance of outliers (such as journals for which we have very little citation data, or fields containing very few journals) from shooting to the top or the bottom of a Bradley--Terry scores league table.
+
+``` r
+zero_cite <- mean(as.matrix(xtab)) ## mean citation count is 729 or n*6.5
+penalised_xtab <- rbind(zero_cite, cbind(zero_cite, xtab)) # add zeroth player
+
+library(scrooge)
+field_ranks <- data.frame(
+  field = V(sj)$field,
+  PageRank = PageRank(penalised_xtab)[-1],
+  BradleyTerry = BTscores(penalised_xtab)[-1],
+  Scroogefactor = Scroogefactor(penalised_xtab)[-1]
+)
+
+field_ranks$rank <- rank(-field_ranks$BradleyTerry, ties.method = 'first')
+lastplace <- max(field_ranks$rank)
+
+library(ggrepel)
+ggplot(field_ranks) +
+  aes(rank, BradleyTerry, label = field) +
+  geom_point(colour = 'steelblue3', size = 1) +
+  # Top fields
+  geom_text_repel(data = subset(field_ranks, rank < 5),
+                  nudge_y = .001,
+                  segment.alpha = .25,
+                  family = 'Arial Narrow', fontface = 'bold',
+                  colour = 'steelblue') +
+  # Selected 'interesting' fields
+  # geom_text_repel(data = subset(field_ranks, field %in% c('mathematics',
+  #                                                         'biomedical sciences',
+  #                                                         'medicine',
+  #                                                         'chemistry & physics',
+  #                                                         'psychology',
+  #                                                         'informatics')),
+  #                 nudge_y = .0025,
+  #                 segment.alpha = .25,
+  #                 family = 'Arial Narrow', fontface = 'bold',
+  #                 colour = 'steelblue') +
+  scale_x_reverse(name = NULL,
+                  labels = scales::ordinal,
+                  breaks = c(1, seq(20, lastplace, by = 20)),
+                  minor_breaks = c(1, seq(5, lastplace, by = 5)),
+                  limits = c(lastplace, 1),
+                  expand = c(0.02, 0)) +
+  scale_y_continuous(NULL,
+                     position = 'right',
+                     labels = NULL) +
+  theme_bw() +
+  theme(text = element_text(family = 'Arial Narrow'),
+        axis.text = element_text(colour = 'steelblue'),
+        panel.grid = element_blank(),
+        panel.border = element_blank(),
+        axis.ticks = element_line(colour = 'steelblue'),
+        axis.line = element_line(colour = 'steelblue'),
+        plot.background = element_rect(fill = 'transparent', colour = NA),
+        panel.background = element_rect(fill = 'transparent', colour = NA))
+```
