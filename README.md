@@ -213,13 +213,13 @@ stats_layout <- create_layout(stats_ig,
 
 extrafont::loadfonts(device = 'win', quiet = TRUE)
 ggraph(stats_layout) +
-  geom_edge_fan0(alpha = .05, colour = 'steelblue3') +
-  geom_node_point(aes(size = PageRank), fill = 'steelblue3', pch = 21, colour = 'white') +
+  geom_edge_fan0(alpha = .05, colour = 'tomato2') +
+  geom_node_point(aes(size = PageRank), fill = 'tomato2', pch = 21, colour = 'white') +
   geom_node_text(aes(label = name), size = 3,
                  repel = TRUE,
                  family = 'Arial Narrow',
                  fontface = 'bold',
-                 colour = 'steelblue',
+                 colour = 'tomato2',
                  segment.alpha = .2) +
   coord_fixed() +
   theme_graph() +
@@ -433,13 +433,13 @@ other_layout <- create_layout(stats_others,
 
 extrafont::loadfonts(device = 'win', quiet = TRUE)
 ggraph(other_layout) +
-  geom_edge_fan0(alpha = .01, colour = 'steelblue3') +
-  geom_node_point(aes(size = PageRank), fill = 'steelblue3', pch = 21, colour = 'white') +
+  geom_edge_fan0(alpha = .01, colour = 'tomato2') +
+  geom_node_point(aes(size = PageRank), fill = 'tomato2', pch = 21, colour = 'white') +
   geom_node_text(aes(label = name), size = 3,
                  repel = TRUE,
                  family = 'Arial Narrow',
                  fontface = 'bold',
-                 colour = 'steelblue',
+                 colour = 'tomato2',
                  segment.alpha = .2) +
   coord_fixed() +
   theme_graph() +
