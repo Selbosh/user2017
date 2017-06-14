@@ -210,6 +210,8 @@ stats_layout <- create_layout(stats_ig,
                               layout = 'igraph',
                               algorithm = 'mds',
                               dist = 1 - cor(as.matrix(stats_xtab)))
+
+extrafont::loadfonts(device = 'win', quiet = TRUE)
 ggraph(stats_layout) +
   geom_edge_fan0(alpha = .05, colour = 'steelblue3') +
   geom_node_point(aes(size = PageRank), fill = 'steelblue3', pch = 21, colour = 'white') +
@@ -224,7 +226,7 @@ ggraph(stats_layout) +
   theme(legend.position = 'none')
 ```
 
-![](img/stats_viz-1.png)
+![](img/stats_viz_web-1.png)
 
 And here is a ranking of these statistical journals, by Bradley--Terry score.
 
@@ -326,6 +328,7 @@ mapping[is.na(mapping)] <- max(mapping, na.rm = TRUE) + 1
 stats_others <- contract.vertices(ig, mapping, list(name = 'first', 'ignore'))
 V(stats_others)$name[vcount(stats_others)] <- "(All others)"
 others_xtab <- Matrix::t(as_adjacency_matrix(stats_others))
+diag(others_xtab) <- 0
 
 dplyr::arrange(
   data.frame(journal = V(stats_others)$name,
@@ -416,3 +419,31 @@ dplyr::arrange(
 | J KOREAN STAT SOC    |      0.0024670|  0.0063257|     0.0021873|
 | COMPUTATION STAT     |      0.0025795|  0.0064853|     0.0021572|
 | PAK J STAT           |      0.0012715|  0.0068723|     0.0012420|
+
+We can try plotting it, too.
+
+``` r
+stats_others <- simplify(stats_others, remove.loops = TRUE, remove.multiple = FALSE) # remove self-citations
+V(stats_others)$PageRank <- page.rank(stats_others)$vector
+
+other_layout <- create_layout(stats_others,
+                              layout = 'igraph',
+                              algorithm = 'mds',
+                              dist = 1 - cor(as.matrix(others_xtab)))
+
+extrafont::loadfonts(device = 'win', quiet = TRUE)
+ggraph(other_layout) +
+  geom_edge_fan0(alpha = .01, colour = 'steelblue3') +
+  geom_node_point(aes(size = PageRank), fill = 'steelblue3', pch = 21, colour = 'white') +
+  geom_node_text(aes(label = name), size = 3,
+                 repel = TRUE,
+                 family = 'Arial Narrow',
+                 fontface = 'bold',
+                 colour = 'steelblue',
+                 segment.alpha = .2) +
+  coord_fixed() +
+  theme_graph() +
+  theme(legend.position = 'none')
+```
+
+![](img/plot_stats_others-1.png)
