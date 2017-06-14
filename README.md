@@ -74,13 +74,13 @@ core <- which(strong$csize > 1)
 if (length(core) > 1) stop('There should be only one core component')
 ```
 
-The whole graph contains 12604 nodes (journals). Of these, 1.071310^{4} belong to our "core" strongly-connected component and 1891 are singletons, either weakly connected or completely disconnected from the rest of the graph. Let's get rid of these singleton nodes.
+The whole graph contains 12,604 nodes (journals). Of these, 10,713 belong to our "core" strongly-connected component and 1,891 are singletons, either weakly connected or completely disconnected from the rest of the graph. Let's get rid of these singleton nodes.
 
 ``` r
 ig <- induced_subgraph(ig, which(strong$membership == core))
 ```
 
-We now have 10713 journals in our network.
+We now have 10,713 journals in our network.
 
 Super journals
 --------------
@@ -190,3 +190,40 @@ ggraph(my_mds) +
 ```
 
 ![](img/labelled-1.png)
+
+Within-field analysis
+---------------------
+
+Now, let's take a particular field out of the network and examine its inner structure. Varin et al. (2016) set a precedent to study statistics journals, so let's have a look at statistics.
+
+``` r
+statistics <- labels$community[labels$field == 'statistics']
+stats_ig <- induced_subgraph(ig, which(membership(infomap) == statistics))
+V(stats_ig)$PageRank <- page.rank(stats_ig)$vector
+```
+
+There are 77 journals in the statistics subgraph, in 1 strongly-connected component(s).
+
+We can visualise the network as before.
+
+``` r
+stats_xtab <- Matrix::t(as_adjacency_matrix(stats_ig))
+stats_layout <- create_layout(stats_ig,
+                              layout = 'igraph',
+                              algorithm = 'mds',
+                              dist = 1 - cor(as.matrix(stats_xtab)))
+ggraph(stats_layout) +
+  geom_edge_fan0(alpha = .05, colour = 'steelblue3') +
+  geom_node_point(aes(size = PageRank), fill = 'steelblue3', pch = 21, colour = 'white') +
+  geom_node_text(aes(label = name), size = 3,
+                 repel = TRUE,
+                 family = 'Arial Narrow',
+                 fontface = 'bold',
+                 colour = 'steelblue',
+                 segment.alpha = .2) +
+  coord_fixed() +
+  theme_graph() +
+  theme(legend.position = 'none')
+```
+
+![](img/stats_viz-1.png)
