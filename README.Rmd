@@ -193,8 +193,8 @@ Let's make some plots!
 
 ```{r superjournals, dev = 'cairo_pdf', fig.width = 10, fig.height = 10, fig.show = 'hide'}
 ggraph(my_mds) +
-  geom_edge_fan0(alpha = .01, colour = 'steelblue3') +
-  geom_node_point(aes(size = PageRank), fill = 'steelblue3', pch = 21, colour = 'white') +
+  geom_edge_fan0(alpha = .01, colour = '#4F94CD') +
+  geom_node_point(aes(size = PageRank), fill = '#4F94CD', pch = 21, colour = 'white') +
   coord_fixed() +
   scale_x_reverse() + # flip horizontally
   theme_graph() +
@@ -210,20 +210,33 @@ I have gone through and manually assigned plausible labels to the communities ge
 
 We can then have a labelled plot for reference, or even show a selection of "interesting" labels on the main graph, while omitting most of them to avoid clutter.
 
-```{r labelled, dev = 'png', fig.width = 10, fig.height = 10, dev.args = list(type = 'cairo'), dpi = 600}
+```{r labelled, dev = 'png', fig.width = 10, fig.height = 10, dev.args = list(type = 'cairo'), dpi = 600, warning = FALSE}
+# Hide plot labels for very small fields
+my_mds$flabel <- ifelse(rank(my_mds$PageRank) > 32, as.character(my_mds$field), NA)
+
 ggraph(my_mds) +
-  geom_edge_fan0(alpha = .01, colour = 'steelblue3') +
-  geom_node_point(aes(size = PageRank), fill = 'steelblue3', pch = 21, colour = 'white') +
-  geom_node_text(aes(label = field), size = 3,
-                 repel = TRUE,
-                 family = 'Arial Narrow',
-                 fontface = 'bold',
-                 colour = 'steelblue',
-                 segment.alpha = .2) +
+  geom_edge_fan0(alpha = .007, colour = 'tomato2') + #4F94CD #2D7B95
+  geom_node_point(aes(size = PageRank), fill = 'tomato2', pch = 21, colour = 'white') +
+  geom_node_label(aes(label = flabel),
+                  size = 2,
+                  repel = TRUE,
+                  family = 'Gill Sans MT Condensed',
+                  fontface = 'bold',
+                  colour = 'tomato2',
+                  # Label options
+                  segment.alpha = .5,
+                  segment.size = 0.2,
+                  label.r = unit(0.1, 'lines'),
+                  label.size = NA, # no label border
+                  label.padding = unit(0.1, 'lines'),
+                  fill = rgb(1, 1, 1, .5)) +
   coord_fixed() +
   scale_x_reverse() +
   theme_graph() +
   theme(legend.position = 'none')
+```
+
+```{r labelled2, ref.label = 'labelled', fig.width = 10, fig.height = 10, include = FALSE, dev = 'cairo_pdf'}
 ```
 
 ## Within-field analysis
@@ -236,7 +249,16 @@ statistics <- labels$community[labels$field == 'statistics']
 stats_ig <- induced_subgraph(ig, which(membership(infomap) == statistics))
 V(stats_ig)$PageRank <- page.rank(stats_ig)$vector
 ```
+
 There are `r vcount(stats_ig)` journals in the statistics subgraph, in `r count_components(stats_ig, mode = 'strong')` strongly-connected component(s).
+
+At the moment we only have Thomson Reuters' abbreviations for the journal names.
+Some are more obvious than others! We have the full journal titles, but some are a bit too long, so we will use a table of custom short-ish titles.
+
+```{r journaltitles}
+titles <- read.csv('data/stats_titles.csv', stringsAsFactors = FALSE)
+V(stats_ig)$title <- titles$Short[match(V(stats_ig)$name, titles$JCR)]
+```
 
 We can visualise the network as before.
 
@@ -250,9 +272,9 @@ stats_layout <- create_layout(stats_ig,
 ggraph(stats_layout) +
   geom_edge_fan0(alpha = .05, colour = 'tomato2') +
   geom_node_point(aes(size = PageRank), fill = 'tomato2', pch = 21, colour = 'white') +
-  geom_node_text(aes(label = name), size = 3,
+  geom_node_text(aes(label = title), size = 3,
                  repel = TRUE,
-                 family = 'Arial Narrow',
+                 family = 'Gill Sans MT Condensed',
                  fontface = 'bold',
                  colour = 'tomato2',
                  segment.alpha = .2) +
@@ -261,31 +283,34 @@ ggraph(stats_layout) +
   theme(legend.position = 'none')
 ```
 
-```{r stats_viz, dev = 'cairo_pdf', fig.width = 10, fig.height = 10, include = FALSE}
+```{r stats_viz, dev = 'cairo_pdf', fig.width = 10, fig.height = 10, include = FALSE, dev.args = list(bg = 'transparent')}
 ggraph(stats_layout) +
-  geom_edge_fan0(alpha = .05, colour = 'tomato2') +
-  geom_node_point(aes(size = PageRank), fill = 'tomato2', pch = 21, colour = 'white') +
-  geom_node_text(aes(label = name), size = 3,
+  geom_edge_fan0(alpha = .05, colour = '#2D7B95') +
+  geom_node_point(aes(size = PageRank), fill = '#2D7B95', pch = 21, colour = 'white') +
+  geom_node_text(aes(label = title), size = 3,
                  repel = TRUE,
-                 family = 'Arial Narrow',
+                 family = 'Gill Sans MT Condensed',
                  fontface = 'bold',
-                 colour = 'tomato2',
+                 colour = '#2D7B95',
                  segment.alpha = .2) +
   coord_fixed() +
   theme_graph() +
-  theme(legend.position = 'none')
+  theme(legend.position = 'none',
+        plot.background = element_rect(fill = 'transparent', colour = NA),
+        panel.background = element_rect(fill = 'transparent', colour = NA))
 ```
 
 And here is a ranking of these statistical journals, by Bradley--Terry score.
 
 ```{r stats_rank, message = FALSE}
-dplyr::arrange(
-  data.frame(journal = V(stats_ig)$name,
+(stats_ranks <- dplyr::arrange(
+  data.frame(journal = V(stats_ig)$title,
              Scroogefactor = scrooge::Scroogefactor(stats_xtab),
              PageRank = V(stats_ig)$PageRank,
-             BradleyTerry = scrooge::BTscores(stats_xtab)),
+             BradleyTerry = scrooge::BTscores(stats_xtab),
+             rank = rank(-scrooge::BTscores(stats_xtab), ties.method = 'first')),
   desc(BradleyTerry)
-)
+))
 ```
 
 And now for something completely different.
@@ -295,12 +320,12 @@ What if we actually have a single non-statistics "super-journal" in the statisti
 mapping <- match(V(ig)$name, V(stats_ig)$name)
 mapping[is.na(mapping)] <- max(mapping, na.rm = TRUE) + 1
 stats_others <- contract.vertices(ig, mapping, list(name = 'first', 'ignore'))
-V(stats_others)$name[vcount(stats_others)] <- "(All others)"
+V(stats_others)$title[vcount(stats_others)] <- "(All others)"
 others_xtab <- Matrix::t(as_adjacency_matrix(stats_others))
 diag(others_xtab) <- 0
 
 dplyr::arrange(
-  data.frame(journal = V(stats_others)$name,
+  data.frame(journal = V(stats_others)$title,
              Scroogefactor = scrooge::Scroogefactor(others_xtab),
              PageRank = page.rank(stats_others)$vector,
              BradleyTerry = scrooge::BTscores(others_xtab)),
@@ -320,13 +345,13 @@ other_layout <- create_layout(stats_others,
                               dist = 1 - cor(as.matrix(others_xtab)))
 
 ggraph(other_layout) +
-  geom_edge_fan0(alpha = .01, colour = 'steelblue3') +
-  geom_node_point(aes(size = PageRank), fill = 'steelblue3', pch = 21, colour = 'white') +
-  geom_node_text(aes(label = name), size = 3,
+  geom_edge_fan0(alpha = .01, colour = '#4F94CD') +
+  geom_node_point(aes(size = PageRank), fill = '#4F94CD', pch = 21, colour = 'white') +
+  geom_node_text(aes(label = title), size = 3,
                  repel = TRUE,
-                 family = 'Arial Narrow',
+                 family = 'Gill Sans MT Condensed',
                  fontface = 'bold',
-                 colour = 'steelblue3',
+                 colour = '#4F94CD',
                  segment.alpha = .2) +
   coord_fixed() +
   theme_graph() +
@@ -337,8 +362,8 @@ ggraph(other_layout) +
 
 We can penalise the Bradley--Terry model by adding a "player zero" who cites/is cited by every player/journal/field at a constant rate (say 1/2). This will help reduce the chance of outliers (such as journals for which we have very little citation data, or fields containing very few journals) from shooting to the top or the bottom of a Bradley--Terry scores league table.
 
-```{r ranking, dev = 'cairo_pdf', fig.show = 'hide', fig.width = 6, fig.height = 5, dev.args = list(bg = 'transparent')}
-zero_cite <- mean(as.matrix(xtab)) ## mean citation count is 729 or n*6.5
+```{r ranking, dev = 'cairo_pdf', fig.show = 'hide', fig.width = 5, fig.height = 3, dev.args = list(bg = 'transparent')}
+zero_cite <- .15 * sum(xtab) / 2 / nrow(xtab) ## 2ka = .15n
 penalised_xtab <- rbind(zero_cite, cbind(zero_cite, xtab)) # add zeroth player
 
 library(scrooge)
@@ -348,31 +373,31 @@ field_ranks <- data.frame(
   BradleyTerry = BTscores(penalised_xtab)[-1],
   Scroogefactor = Scroogefactor(penalised_xtab)[-1]
 )
-
 field_ranks$rank <- rank(-field_ranks$BradleyTerry, ties.method = 'first')
+dplyr::arrange(field_ranks, desc(BradleyTerry))
+
 lastplace <- max(field_ranks$rank)
+interestingfields <- c('mathematics',
+                       'informatics',
+                       'biomedical sciences',
+                       'medicine',
+                       'chemistry & physics',
+                       'zoology',
+                       'textiles')
 
 library(ggrepel)
 ggplot(field_ranks) +
-  aes(rank, BradleyTerry, label = field) +
-  geom_point(colour = 'steelblue3', size = 1) +
-  # Top fields
-  geom_text_repel(data = subset(field_ranks, rank < 5),
-                  nudge_y = .001,
+  aes(rank, 100*BradleyTerry, label = field) +
+  geom_point(colour = 'tomato2', size = 1) +
+  geom_text_repel(data = subset(field_ranks, rank < 5 | field %in% interestingfields),
+                  nudge_y = .15,
+                  nudge_x = -5,
                   segment.alpha = .25,
-                  family = 'Arial Narrow', fontface = 'bold',
-                  colour = 'steelblue') +
-  # Selected 'interesting' fields
-  # geom_text_repel(data = subset(field_ranks, field %in% c('mathematics',
-  #                                                         'biomedical sciences',
-  #                                                         'medicine',
-  #                                                         'chemistry & physics',
-  #                                                         'psychology',
-  #                                                         'informatics')),
-  #                 nudge_y = .0025,
-  #                 segment.alpha = .25,
-  #                 family = 'Arial Narrow', fontface = 'bold',
-  #                 colour = 'steelblue') +
+                  family = 'Gill Sans MT Condensed', 
+                  fontface = 'bold',
+                  colour = 'tomato2',
+                  point.padding = unit(0.1, 'lines')
+                  ) +
   scale_x_reverse(name = NULL,
                   labels = scales::ordinal,
                   breaks = c(1, seq(20, lastplace, by = 20)),
@@ -380,15 +405,61 @@ ggplot(field_ranks) +
                   limits = c(lastplace, 1),
                   expand = c(0.02, 0)) +
   scale_y_continuous(NULL,
-                     position = 'right',
-                     labels = NULL) +
+                     position = 'right') +
   theme_bw() +
-  theme(text = element_text(family = 'Arial Narrow'),
-        axis.text = element_text(colour = 'steelblue'),
+  theme(text = element_text(family = 'Gill Sans MT Condensed', face = 'bold'),
+        axis.text = element_text(colour = 'tomato2'),
         panel.grid = element_blank(),
         panel.border = element_blank(),
-        axis.ticks = element_line(colour = 'steelblue'),
-        axis.line = element_line(colour = 'steelblue'),
+        axis.ticks = element_line(colour = 'tomato2'),
+        axis.line = element_line(colour = 'tomato2'),
+        plot.background = element_rect(fill = 'transparent', colour = NA),
+        panel.background = element_rect(fill = 'transparent', colour = NA))
+```
+
+```{r stats_ranking, dev = 'cairo_pdf', fig.show = 'hide', fig.width = 5, fig.height = 3, dev.args = list(bg = 'transparent')}
+interestingjournals <- c('R Journal',
+                         'Stat Science',
+                         'Biometrika',
+                         #'J Stat Software',
+                         'Annals',
+                         'Stats in Medicine',
+                         #'Biostatistics',
+                         'Machine Learning',
+                         'JRSS-B',
+                         'Statistics',
+                         #'J Applied Stats',
+                         'Metrika',
+                         'JCGS')
+lastplace2 <- max(stats_ranks$rank)
+
+ggplot(stats_ranks) +
+  aes(rank, 100*BradleyTerry, label = journal) +
+  geom_point(colour = '#2D7B95', size = 1) +
+  geom_text_repel(data = subset(stats_ranks, rank <= 3 | journal %in% interestingjournals),
+                  nudge_y = .15,
+                  nudge_x = -5,
+                  segment.alpha = .25,
+                  family = 'Gill Sans MT Condensed',
+                  fontface = 'bold',
+                  colour = '#2D7B95',
+                  point.padding = unit(0.2, 'lines')
+                  ) +
+  scale_x_reverse(name = NULL,
+                  labels = scales::ordinal,
+                  breaks = c(1, seq(20, lastplace2, by = 20)),
+                  minor_breaks = c(1, seq(5, lastplace2, by = 5)),
+                  limits = c(lastplace2, 1),
+                  expand = c(0.02, 0)) +
+  scale_y_continuous(NULL,
+                     position = 'right') +
+  theme_bw() +
+  theme(text = element_text(family = 'Gill Sans MT Condensed', face = 'bold'),
+        axis.text = element_text(colour = '#2D7B95'),
+        panel.grid = element_blank(),
+        panel.border = element_blank(),
+        axis.ticks = element_line(colour = '#2D7B95'),
+        axis.line = element_line(colour = '#2D7B95'),
         plot.background = element_rect(fill = 'transparent', colour = NA),
         panel.background = element_rect(fill = 'transparent', colour = NA))
 ```
