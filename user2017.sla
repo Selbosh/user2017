@@ -297,11 +297,11 @@
                 <ITEXT FONT="Goudy Old Style Bold" CH="David Selby"/>
                 <breakline/>
                 <ITEXT CPARENT="Teletype" CH="D.Selby@warwick.ac.uk"/>
-                <breakline/>
+                <para PARENT="Standfirst" ALIGN="2" LINESP="34"/>
                 <ITEXT FONT="Goudy Old Style Bold" CH="David Firth"/>
                 <breakline/>
                 <ITEXT CPARENT="Teletype" CH="D.Firth@warwick.ac.uk"/>
-                <trail PARENT="Standfirst" ALIGN="2"/>
+                <trail PARENT="Standfirst" ALIGN="2" LINESP="34"/>
             </StoryText>
         </PAGEOBJECT>
     </DOCUMENT>
