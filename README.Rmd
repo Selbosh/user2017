@@ -31,13 +31,13 @@ Citation behaviour varies greatly across disciplines, making inter-field compari
 Recent approaches to measuring influence in networks, based on the PageRank algorithm, take the source of citations (or recommendations or links) into account.
 
 By aggregating all publications in each Web of Science field into "super-journals", we model the exchange of citations between fields.
-We then fit a Bradley--Terry paired comparisons model---which can be shown to be equivalent to scaled PageRank---to measure the relative influence of academic communities.
+We then fit a Bradley–Terry paired comparisons model—which can be shown to be equivalent to scaled PageRank—to measure the relative influence of academic communities.
 Uncertainty intervals are provided to quantify the robustness of the ranking.
 All analyses were performed in R.
 
 Which field is top of the table? Visit the poster to find out!
 
-**Keywords**: PageRank, Bradley--Terry model, networks, ranking, bibliometrics
+**Keywords**: PageRank, Bradley–Terry model, networks, ranking, bibliometrics
 
 ## Design inspiration
 
@@ -50,9 +50,17 @@ See also [Giants of the Ocean][giants].
 
 See also the diagram in Figure 3 of *Fast unfolding of communities in large networks* by [Blondel et al (2008)](https://arxiv.org/abs/0803.0476), where we have a large node-link diagram with communities aggregated into nodes, then a 'zoom' on a selected community, represented as its constituent nodes and links.
 
-Colin Purrington's [results area design for portrait posters](https://i0.wp.com/colinpurrington.com/wp-content/uploads/2011/09/poster-template-vertical-2-purrington.jpg).
+Since useR!2017 specifies posters must be A0 in portrait orientation, we can't implement landscape layouts like those mentioned above.
+While using some of those ideas, we might consider Colin Purrington's [results area design for portrait posters](https://i0.wp.com/colinpurrington.com/wp-content/uploads/2011/09/poster-template-vertical-2-purrington.jpg).
+
+Another useful resource is the [Better Posters blog](http://betterposters.blogspot.co.uk/).
+
+A large dose of inspiration may also be drawn from Dorling Kindersley *Eyewitness* books.
 
 # Method
+
+Unfortunately, some of the raw data is property of Thomson Reuters / Clarivate Analytics so I cannot republish it in this repository.
+Nonetheless, hopefully you can get a general idea of what I have done from the source code and results.
 
 We will need the following packages.
 
@@ -69,7 +77,7 @@ First we load the 2013 Web of Science citation data into R.
 WoS <- readRDS('../thesis/data/thomsonreuters.Rds')
 ```
 
-We are only interested in citations from 2013 to publications from 2003--2012.
+We are only interested in citations from 2013 to publications from 2003–2012.
 Furthermore, some miscellaneous journals are unhelpfully classified as `ALL OTHERS` and we want to omit any reference to these as well.
 Citations of count (`weight`) equal to zero should be deleted to avoid connectivity problems later.
 
@@ -300,7 +308,7 @@ ggraph(stats_layout) +
         panel.background = element_rect(fill = 'transparent', colour = NA))
 ```
 
-And here is a ranking of these statistical journals, by Bradley--Terry score.
+And here is a ranking of these statistical journals, by Bradley–Terry score.
 
 ```{r stats_rank, message = FALSE}
 (stats_ranks <- dplyr::arrange(
@@ -320,12 +328,12 @@ What if we actually have a single non-statistics "super-journal" in the statisti
 mapping <- match(V(ig)$name, V(stats_ig)$name)
 mapping[is.na(mapping)] <- max(mapping, na.rm = TRUE) + 1
 stats_others <- contract.vertices(ig, mapping, list(name = 'first', 'ignore'))
-V(stats_others)$title[vcount(stats_others)] <- "(All others)"
+V(stats_others)$name[vcount(stats_others)] <- "(All others)"
 others_xtab <- Matrix::t(as_adjacency_matrix(stats_others))
 diag(others_xtab) <- 0
 
 dplyr::arrange(
-  data.frame(journal = V(stats_others)$title,
+  data.frame(journal = V(stats_others)$name,
              Scroogefactor = scrooge::Scroogefactor(others_xtab),
              PageRank = page.rank(stats_others)$vector,
              BradleyTerry = scrooge::BTscores(others_xtab)),
@@ -335,7 +343,7 @@ dplyr::arrange(
 
 We can try plotting it, too.
 
-```{r plot_stats_others, dev = 'png', fig.width = 10, fig.height = 10, dev.args = list(type = 'cairo'), dpi = 600}
+```{r plot_stats_others, dev = 'png', fig.width = 10, fig.height = 6, dev.args = list(type = 'cairo'), dpi = 600}
 stats_others <- simplify(stats_others, remove.loops = TRUE, remove.multiple = FALSE) # remove self-citations
 V(stats_others)$PageRank <- page.rank(stats_others)$vector
 
@@ -347,7 +355,7 @@ other_layout <- create_layout(stats_others,
 ggraph(other_layout) +
   geom_edge_fan0(alpha = .01, colour = '#4F94CD') +
   geom_node_point(aes(size = PageRank), fill = '#4F94CD', pch = 21, colour = 'white') +
-  geom_node_text(aes(label = title), size = 3,
+  geom_node_text(aes(label = name), size = 3,
                  repel = TRUE,
                  family = 'Gill Sans MT Condensed',
                  fontface = 'bold',
@@ -360,7 +368,7 @@ ggraph(other_layout) +
 
 ## Ranking
 
-We can penalise the Bradley--Terry model by adding a "player zero" who cites/is cited by every player/journal/field at a constant rate (say 1/2). This will help reduce the chance of outliers (such as journals for which we have very little citation data, or fields containing very few journals) from shooting to the top or the bottom of a Bradley--Terry scores league table.
+We can penalise the Bradley–Terry model by adding a "player zero" who cites/is cited by every player/journal/field at a constant rate (say 1/2). This will help reduce the chance of outliers (such as journals for which we have very little citation data, or fields containing very few journals) from shooting to the top or the bottom of a Bradley–Terry scores league table.
 
 ```{r ranking, dev = 'cairo_pdf', fig.show = 'hide', fig.width = 5, fig.height = 3, dev.args = list(bg = 'transparent')}
 zero_cite <- .15 * sum(xtab) / 2 / nrow(xtab) ## 2ka = .15n

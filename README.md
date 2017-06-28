@@ -12,11 +12,11 @@ Ranking influential communities in networks
 
 Which scientific fields export the most intellectual influence, through recent research, to other fields? Citation behaviour varies greatly across disciplines, making inter-field comparisons difficult. Recent approaches to measuring influence in networks, based on the PageRank algorithm, take the source of citations (or recommendations or links) into account.
 
-By aggregating all publications in each Web of Science field into "super-journals", we model the exchange of citations between fields. We then fit a Bradley--Terry paired comparisons model---which can be shown to be equivalent to scaled PageRank---to measure the relative influence of academic communities. Uncertainty intervals are provided to quantify the robustness of the ranking. All analyses were performed in R.
+By aggregating all publications in each Web of Science field into "super-journals", we model the exchange of citations between fields. We then fit a Bradley–Terry paired comparisons model—which can be shown to be equivalent to scaled PageRank—to measure the relative influence of academic communities. Uncertainty intervals are provided to quantify the robustness of the ranking. All analyses were performed in R.
 
 Which field is top of the table? Visit the poster to find out!
 
-**Keywords**: PageRank, Bradley--Terry model, networks, ranking, bibliometrics
+**Keywords**: PageRank, Bradley–Terry model, networks, ranking, bibliometrics
 
 Design inspiration
 ------------------
@@ -25,10 +25,16 @@ Alberto Cairo's [two-page spread on the *Galileo* telescope](http://www.domusweb
 
 See also the diagram in Figure 3 of *Fast unfolding of communities in large networks* by [Blondel et al (2008)](https://arxiv.org/abs/0803.0476), where we have a large node-link diagram with communities aggregated into nodes, then a 'zoom' on a selected community, represented as its constituent nodes and links.
 
-Colin Purrington's [results area design for portrait posters](https://i0.wp.com/colinpurrington.com/wp-content/uploads/2011/09/poster-template-vertical-2-purrington.jpg).
+Since useR!2017 specifies posters must be A0 in portrait orientation, we can't implement landscape layouts like those mentioned above. While using some of those ideas, we might consider Colin Purrington's [results area design for portrait posters](https://i0.wp.com/colinpurrington.com/wp-content/uploads/2011/09/poster-template-vertical-2-purrington.jpg).
+
+Another useful resource is the [Better Posters blog](http://betterposters.blogspot.co.uk/).
+
+A large dose of inspiration may also be drawn from Dorling Kindersley *Eyewitness* books.
 
 Method
 ======
+
+Unfortunately, some of the raw data is property of Thomson Reuters / Clarivate Analytics so I cannot republish it in this repository. Nonetheless, hopefully you can get a general idea of what I have done from the source code and results.
 
 We will need the following packages.
 
@@ -46,7 +52,7 @@ First we load the 2013 Web of Science citation data into R.
 WoS <- readRDS('../thesis/data/thomsonreuters.Rds')
 ```
 
-We are only interested in citations from 2013 to publications from 2003--2012. Furthermore, some miscellaneous journals are unhelpfully classified as `ALL OTHERS` and we want to omit any reference to these as well. Citations of count (`weight`) equal to zero should be deleted to avoid connectivity problems later.
+We are only interested in citations from 2013 to publications from 2003–2012. Furthermore, some miscellaneous journals are unhelpfully classified as `ALL OTHERS` and we want to omit any reference to these as well. Citations of count (`weight`) equal to zero should be deleted to avoid connectivity problems later.
 
 ``` r
 WoS <- data.frame(from = WoS$Citing, to = WoS$Cited, weight = WoS$AllYears - WoS$Earlier)
@@ -240,7 +246,7 @@ ggraph(stats_layout) +
 
 ![](img/stats_viz_web-1.png)
 
-And here is a ranking of these statistical journals, by Bradley--Terry score.
+And here is a ranking of these statistical journals, by Bradley–Terry score.
 
 ``` r
 (stats_ranks <- dplyr::arrange(
@@ -339,12 +345,12 @@ And now for something completely different. What if we actually have a single no
 mapping <- match(V(ig)$name, V(stats_ig)$name)
 mapping[is.na(mapping)] <- max(mapping, na.rm = TRUE) + 1
 stats_others <- contract.vertices(ig, mapping, list(name = 'first', 'ignore'))
-V(stats_others)$title[vcount(stats_others)] <- "(All others)"
+V(stats_others)$name[vcount(stats_others)] <- "(All others)"
 others_xtab <- Matrix::t(as_adjacency_matrix(stats_others))
 diag(others_xtab) <- 0
 
 dplyr::arrange(
-  data.frame(journal = V(stats_others)$title,
+  data.frame(journal = V(stats_others)$name,
              Scroogefactor = scrooge::Scroogefactor(others_xtab),
              PageRank = page.rank(stats_others)$vector,
              BradleyTerry = scrooge::BTscores(others_xtab)),
@@ -352,86 +358,86 @@ dplyr::arrange(
 )
 ```
 
-| journal      |  Scroogefactor|   PageRank|  BradleyTerry|
-|:-------------|--------------:|----------:|-------------:|
-| NA           |      0.0597587|  0.0159115|     0.0662567|
-| NA           |      0.0533165|  0.0320152|     0.0584122|
-| NA           |      0.0498796|  0.0084807|     0.0547457|
-| NA           |      0.0343575|  0.0368557|     0.0361016|
-| NA           |      0.0275142|  0.0169518|     0.0283282|
-| NA           |      0.0266800|  0.0694021|     0.0278383|
-| NA           |      0.0268367|  0.0123934|     0.0275116|
-| NA           |      0.0250801|  0.0277151|     0.0266368|
-| NA           |      0.0237224|  0.0560967|     0.0251152|
-| NA           |      0.0224210|  0.0070761|     0.0246029|
-| NA           |      0.0212466|  0.0186240|     0.0225928|
-| NA           |      0.0214237|  0.0136015|     0.0218223|
-| NA           |      0.0225656|  0.0100984|     0.0206261|
-| NA           |      0.0188755|  0.0085729|     0.0203618|
-| NA           |      0.0194398|  0.0148760|     0.0189859|
-| NA           |      0.0190649|  0.0139816|     0.0189028|
-| NA           |      0.0178737|  0.0118255|     0.0173150|
-| NA           |      0.0179341|  0.0102346|     0.0172444|
-| NA           |      0.0171675|  0.0091808|     0.0170781|
-| NA           |      0.0158302|  0.0336120|     0.0167550|
-| NA           |      0.0161689|  0.0384759|     0.0164907|
-| NA           |      0.0141561|  0.0111754|     0.0154762|
-| NA           |      0.0165599|  0.0157602|     0.0147462|
-| NA           |      0.0154795|  0.0098950|     0.0141590|
-| NA           |      0.0142590|  0.0073603|     0.0136896|
-| NA           |      0.0141285|  0.0328774|     0.0133039|
-| NA           |      0.0133718|  0.0081363|     0.0128179|
-| NA           |      0.0127270|  0.0081576|     0.0125918|
-| NA           |      0.0137490|  0.0115487|     0.0124839|
-| NA           |      0.0137731|  0.0093792|     0.0124744|
-| NA           |      0.0132021|  0.0074011|     0.0117373|
-| NA           |      0.0128800|  0.0098124|     0.0102774|
-| NA           |      0.0096748|  0.0098427|     0.0101378|
-| NA           |      0.0123958|  0.0098934|     0.0098247|
-| NA           |      0.0096255|  0.0093404|     0.0097203|
-| NA           |      0.0108198|  0.0074397|     0.0093956|
-| NA           |      0.0083334|  0.0073263|     0.0093387|
-| NA           |      0.0104667|  0.0067418|     0.0090792|
-| NA           |      0.0088240|  0.0071893|     0.0089873|
-| NA           |      0.0081377|  0.0066973|     0.0086932|
-| NA           |      0.0097456|  0.0262258|     0.0086846|
-| NA           |      0.0074250|  0.0054547|     0.0081761|
-| NA           |      0.0079691|  0.0061630|     0.0079729|
-| NA           |      0.0077236|  0.0085714|     0.0078223|
-| NA           |      0.0086403|  0.0148244|     0.0073900|
-| NA           |      0.0076118|  0.0071660|     0.0072628|
-| NA           |      0.0068412|  0.0073625|     0.0072348|
-| NA           |      0.0082754|  0.0212788|     0.0071910|
-| NA           |      0.0066574|  0.0071288|     0.0069508|
-| NA           |      0.0061108|  0.0066631|     0.0065910|
-| NA           |      0.0068530|  0.0081674|     0.0064932|
-| NA           |      0.0068281|  0.0076906|     0.0063508|
-| (All others) |      0.0056965|  0.0115052|     0.0061721|
-| NA           |      0.0057950|  0.0076824|     0.0061600|
-| NA           |      0.0071682|  0.0090134|     0.0060598|
-| NA           |      0.0063426|  0.0112566|     0.0058592|
-| NA           |      0.0067499|  0.0071786|     0.0057831|
-| NA           |      0.0059140|  0.0140319|     0.0054953|
-| NA           |      0.0065317|  0.0059580|     0.0052631|
-| NA           |      0.0049446|  0.0092773|     0.0052533|
-| NA           |      0.0062151|  0.0072493|     0.0052001|
-| NA           |      0.0039183|  0.0060033|     0.0045831|
-| NA           |      0.0057245|  0.0152338|     0.0045302|
-| NA           |      0.0048405|  0.0063724|     0.0045107|
-| NA           |      0.0040342|  0.0063369|     0.0043468|
-| NA           |      0.0041720|  0.0095298|     0.0040877|
-| NA           |      0.0039294|  0.0057803|     0.0039361|
-| NA           |      0.0054177|  0.0067122|     0.0038533|
-| NA           |      0.0035906|  0.0064436|     0.0038035|
-| NA           |      0.0043451|  0.0061006|     0.0037645|
-| NA           |      0.0038169|  0.0094288|     0.0035409|
-| NA           |      0.0035820|  0.0058913|     0.0031111|
-| NA           |      0.0049902|  0.0129883|     0.0030936|
-| NA           |      0.0030537|  0.0055776|     0.0026304|
-| NA           |      0.0025070|  0.0061124|     0.0025973|
-| NA           |      0.0024670|  0.0063257|     0.0021873|
-| NA           |      0.0025795|  0.0064853|     0.0021572|
-| NA           |      0.0012715|  0.0068723|     0.0012420|
+| journal              |  Scroogefactor|   PageRank|  BradleyTerry|
+|:---------------------|--------------:|----------:|-------------:|
+| J STAT SOFTW         |      0.0597587|  0.0159115|     0.0662567|
+| J R STAT SOC B       |      0.0533165|  0.0320152|     0.0584122|
+| AM STAT              |      0.0498796|  0.0084807|     0.0547457|
+| BIOMETRIKA           |      0.0343575|  0.0368557|     0.0361016|
+| J COMPUT GRAPH STAT  |      0.0275142|  0.0169518|     0.0283282|
+| ANN STAT             |      0.0266800|  0.0694021|     0.0278383|
+| STAT COMPUT          |      0.0268367|  0.0123934|     0.0275116|
+| BIOMETRICS           |      0.0250801|  0.0277151|     0.0266368|
+| J AM STAT ASSOC      |      0.0237224|  0.0560967|     0.0251152|
+| MACH LEARN           |      0.0224210|  0.0070761|     0.0246029|
+| J MACH LEARN RES     |      0.0212466|  0.0186240|     0.0225928|
+| BIOSTATISTICS        |      0.0214237|  0.0136015|     0.0218223|
+| CAN J STAT           |      0.0225656|  0.0100984|     0.0206261|
+| STAT METHODS MED RES |      0.0188755|  0.0085729|     0.0203618|
+| TECHNOMETRICS        |      0.0194398|  0.0148760|     0.0189859|
+| STAT SCI             |      0.0190649|  0.0139816|     0.0189028|
+| BIOMETRICAL J        |      0.0178737|  0.0118255|     0.0173150|
+| J R STAT SOC C-APPL  |      0.0179341|  0.0102346|     0.0172444|
+| J R STAT SOC A STAT  |      0.0171675|  0.0091808|     0.0170781|
+| STAT MED             |      0.0158302|  0.0336120|     0.0167550|
+| COMPUT STAT DATA AN  |      0.0161689|  0.0384759|     0.0164907|
+| J QUAL TECHNOL       |      0.0141561|  0.0111754|     0.0154762|
+| SCAND J STAT         |      0.0165599|  0.0157602|     0.0147462|
+| ANN I STAT MATH      |      0.0154795|  0.0098950|     0.0141590|
+| INT STAT REV         |      0.0142590|  0.0073603|     0.0136896|
+| J STAT PLAN INFER    |      0.0141285|  0.0328774|     0.0133039|
+| EXTREMES             |      0.0133718|  0.0081363|     0.0128179|
+| LIFETIME DATA ANAL   |      0.0127270|  0.0081576|     0.0125918|
+| BAYESIAN ANAL        |      0.0137490|  0.0115487|     0.0124839|
+| J TIME SER ANAL      |      0.0137731|  0.0093792|     0.0124744|
+| STAT MODEL           |      0.0132021|  0.0074011|     0.0117373|
+| TEST-SPAIN           |      0.0128800|  0.0098124|     0.0102774|
+| J BIOPHARM STAT      |      0.0096748|  0.0098427|     0.0101378|
+| J NONPARAMETR STAT   |      0.0123958|  0.0098934|     0.0098247|
+| ENVIRONMETRICS       |      0.0096255|  0.0093404|     0.0097203|
+| AUST NZ J STAT       |      0.0108198|  0.0074397|     0.0093956|
+| PHARM STAT           |      0.0083334|  0.0073263|     0.0093387|
+| STAT NEERL           |      0.0104667|  0.0067418|     0.0090792|
+| ENVIRON ECOL STAT    |      0.0088240|  0.0071893|     0.0089873|
+| PROBAB ENG INFORM SC |      0.0081377|  0.0066973|     0.0086932|
+| J MULTIVARIATE ANAL  |      0.0097456|  0.0262258|     0.0086846|
+| SORT-STAT OPER RES T |      0.0074250|  0.0054547|     0.0081761|
+| REVSTAT-STAT J       |      0.0079691|  0.0061630|     0.0079729|
+| METRIKA              |      0.0077236|  0.0085714|     0.0078223|
+| BERNOULLI            |      0.0086403|  0.0148244|     0.0073900|
+| J AGR BIOL ENVIR ST  |      0.0076118|  0.0071660|     0.0072628|
+| SCAND ACTUAR J       |      0.0068412|  0.0073625|     0.0072348|
+| STAT PROBABIL LETT   |      0.0082754|  0.0212788|     0.0071910|
+| METHODOL COMPUT APPL |      0.0066574|  0.0071288|     0.0069508|
+| STOCH MODELS         |      0.0061108|  0.0066631|     0.0065910|
+| STATISTICS           |      0.0068530|  0.0081674|     0.0064932|
+| STAT METHODOL        |      0.0068281|  0.0076906|     0.0063508|
+| (All others)         |      0.0056965|  0.0115052|     0.0061721|
+| QUAL ENG             |      0.0057950|  0.0076824|     0.0061600|
+| COMMUN STAT-SIMUL C  |      0.0071682|  0.0090134|     0.0060598|
+| J STAT COMPUT SIM    |      0.0063426|  0.0112566|     0.0058592|
+| SEQUENTIAL ANAL      |      0.0067499|  0.0071786|     0.0057831|
+| COMMUN STAT-THEOR M  |      0.0059140|  0.0140319|     0.0054953|
+| R J                  |      0.0065317|  0.0059580|     0.0052631|
+| QUAL RELIAB ENG INT  |      0.0049446|  0.0092773|     0.0052533|
+| INT J BIOSTAT        |      0.0062151|  0.0072493|     0.0052001|
+| REV COLOMB ESTAD     |      0.0039183|  0.0060033|     0.0045831|
+| ANN APPL STAT        |      0.0057245|  0.0152338|     0.0045302|
+| ESAIM-PROBAB STAT    |      0.0048405|  0.0063724|     0.0045107|
+| STAT BIOPHARM RES    |      0.0040342|  0.0063369|     0.0043468|
+| STAT PAP             |      0.0041720|  0.0095298|     0.0040877|
+| BRAZ J PROBAB STAT   |      0.0039294|  0.0057803|     0.0039361|
+| STAT INTERFACE       |      0.0054177|  0.0067122|     0.0038533|
+| APPL STOCH MODEL BUS |      0.0035906|  0.0064436|     0.0038035|
+| ASTA-ADV STAT ANAL   |      0.0043451|  0.0061006|     0.0037645|
+| J APPL STAT          |      0.0038169|  0.0094288|     0.0035409|
+| ADV DATA ANAL CLASSI |      0.0035820|  0.0058913|     0.0031111|
+| ELECTRON J STAT      |      0.0049902|  0.0129883|     0.0030936|
+| QUAL TECHNOL QUANT M |      0.0030537|  0.0055776|     0.0026304|
+| STAT METHOD APPL-GER |      0.0025070|  0.0061124|     0.0025973|
+| J KOREAN STAT SOC    |      0.0024670|  0.0063257|     0.0021873|
+| COMPUTATION STAT     |      0.0025795|  0.0064853|     0.0021572|
+| PAK J STAT           |      0.0012715|  0.0068723|     0.0012420|
 
 We can try plotting it, too.
 
@@ -447,7 +453,7 @@ other_layout <- create_layout(stats_others,
 ggraph(other_layout) +
   geom_edge_fan0(alpha = .01, colour = '#4F94CD') +
   geom_node_point(aes(size = PageRank), fill = '#4F94CD', pch = 21, colour = 'white') +
-  geom_node_text(aes(label = title), size = 3,
+  geom_node_text(aes(label = name), size = 3,
                  repel = TRUE,
                  family = 'Gill Sans MT Condensed',
                  fontface = 'bold',
@@ -458,14 +464,12 @@ ggraph(other_layout) +
   theme(legend.position = 'none')
 ```
 
-    ## Warning: Removed 77 rows containing missing values (geom_text_repel).
-
 ![](img/plot_stats_others-1.png)
 
 Ranking
 -------
 
-We can penalise the Bradley--Terry model by adding a "player zero" who cites/is cited by every player/journal/field at a constant rate (say 1/2). This will help reduce the chance of outliers (such as journals for which we have very little citation data, or fields containing very few journals) from shooting to the top or the bottom of a Bradley--Terry scores league table.
+We can penalise the Bradley–Terry model by adding a "player zero" who cites/is cited by every player/journal/field at a constant rate (say 1/2). This will help reduce the chance of outliers (such as journals for which we have very little citation data, or fields containing very few journals) from shooting to the top or the bottom of a Bradley–Terry scores league table.
 
 ``` r
 zero_cite <- .15 * sum(xtab) / 2 / nrow(xtab) ## 2ka = .15n
